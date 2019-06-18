@@ -71,7 +71,7 @@ $(raw_tar_files): data/user_input/list_of_tar_files.txt src/data/download_tar_fo
 # and writes both *.otu_table.clean and *.metadata.clean
 # Technically it also depends on one function in FileIO.py
 $(clean_otu_tables): src/data/clean_otu_and_metadata.py $(yaml_file)
-	python $< data/raw_otu_tables $(yaml_file) $@
+	python2 $< data/raw_otu_tables $(yaml_file) $@
 
 # Recover from the removal of $@
 # i.e. if the metadata file is deleted but the OTU table still is unchanged
@@ -88,11 +88,11 @@ $(manual_meta_analysis):
 
 ## 4. Dataset info - table with basic information about the datasets
 $(dataset_info): src/data/dataset_info.py $(yaml_file) $(clean_otu_tables) $(clean_metadata_files)
-	python $< $(yaml_file) data/raw_otu_tables data/clean_tables $@
+	python2 $< $(yaml_file) data/raw_otu_tables data/clean_tables $@
 
 # Same as above, but with case patients split into separate groups
 $(split_dataset_info): src/data/dataset_info.py $(yaml_file) $(clean_otu_tables) $(clean_metadata_files) $(split_datasets)
-	python $< $(yaml_file) data/raw_otu_tables data/clean_tables $@ --split-cases --subset $(split_datasets)
+	python2 $< $(yaml_file) data/raw_otu_tables data/clean_tables $@ --split-cases --subset $(split_datasets)
 
 ###############################################
 #                                             #
@@ -172,23 +172,23 @@ concord: $(concordance) $(concordance_pvals)
 
 ## 1. Univariate q-values files for all genera across all studies
 $(qvalues): src/analysis/get_qvalues.py $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $@
+	python2 $< data/clean_tables $@
 
 ## 2. meta-analysis results (+/- 1's) for within each disease
 $(meta_qvalues): src/analysis/meta_analyze.py $(qvalues)
-	python $< $(qvalues) data/analysis_results 0.05 2 --exclude-nonhealthy --disease
+	python2 $< $(qvalues) data/analysis_results 0.05 2 --exclude-nonhealthy --disease
 
 ## 3. cross-disease meta-analysis results, for different n_disease thresholds
 data/analysis_results/meta.counting.q-0.05.%_diseases.across_all_diseases.txt: src/analysis/meta_analyze.py $(qvalues)
-	python $< $(qvalues) data/analysis_results/ 0.05 $* --exclude-nonhealthy --overall
+	python2 $< $(qvalues) data/analysis_results/ 0.05 $* --exclude-nonhealthy --overall
 
 # Overall meta-analysis with heuristic, excluding diarrhea datasets
 $(nocdi_overall): src/analysis/meta_analyze.py $(qvalues)
-	python $< $(qvalues) data/analysis_results 0.05 2 --no-cdi --exclude-nonhealthy --overall
+	python2 $< $(qvalues) data/analysis_results 0.05 2 --no-cdi --exclude-nonhealthy --overall
 
 # Overall meta-analysis using Stouffer's method for combining pvalues
 $(overall_qvalues_stouffer): src/analysis/meta_analyze_stouffer.py $(qvalues) $(dataset_info)
-	python $< $(qvalues) $(dataset_info) $(qvalues_stouffer) $@ --exclude-nonhealthy
+	python2 $< $(qvalues) $(dataset_info) $(qvalues_stouffer) $@ --exclude-nonhealthy
 
 # The combined qvalues are another output to the above script
 $(qvalues_stouffer):
@@ -199,11 +199,11 @@ $(qvalues_stouffer):
 
 ## 4. dysbiosis metrics
 $(dysbiosis): src/analysis/dysbiosis_metrics.py $(qvalues) $(dataset_info) $(overall_qvalues) $(rf_results)
-	python $< $(qvalues) $(dataset_info) $(overall_qvalues) $(rf_results) $@
+	python2 $< $(qvalues) $(dataset_info) $(overall_qvalues) $(rf_results) $@
 
 ## 5. alpha diversities
 $(alpha_divs): src/analysis/alpha_diversity.py $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $(alpha_divs) $(alpha_pvals)
+	python2 $< data/clean_tables $(alpha_divs) $(alpha_pvals)
 
 $(alpha_pvals): $(alpha_divs)
 	@if test -f $@; then :; else \
@@ -213,44 +213,44 @@ $(alpha_pvals): $(alpha_divs)
 
 ## 6. random forest results
 $(rf_results): src/analysis/classifiers.py $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $(rf_results)
+	python2 $< data/clean_tables $(rf_results)
 
 ## 7. random forest parameter search
 $(rf_param_search): src/analysis/classifiers_parameters.py $(clean_otu_tables) $(clean_metadata_files)
-	python src/analysis/classifiers_parameters.py data/clean_tables \
+	python2 src/analysis/classifiers_parameters.py data/clean_tables \
 	$(rf_param_search)
 
 ## 8. Ubiquity and abundance
 $(ubiquity): src/analysis/ubiquity_abundance.py $(clean_otu_tables) $(clean_metadata_files) $(overall_qvalues)
-	python $< data/clean_tables $(overall_qvalues) $@
+	python2 $< data/clean_tables $(overall_qvalues) $@
 
 ## 9. Random forest using only non-specific bugs (in reviewer response only)
 $(rf_core): src/analysis/classifiers.py $(clean_otu_tables) $(clean_metadata_files) $(overall_qvalues)
-	python $< --core $(overall_qvalues) data/clean_tables $@
+	python2 $< --core $(overall_qvalues) data/clean_tables $@
 
 ## 10. Random forest for general healthy vs disease classifier
 $(rf_h_v_dis): src/analysis/healthy_disease_classifier.py $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $@
+	python2 $< data/clean_tables $@
 
 ## Reviewer comment: re-do major analyses for subgroups of case patients
 ## separately
 $(split_qvalues): src/analysis/get_qvalues.py $(split_datasets) $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $@ --subset $(split_datasets) --split-cases
+	python2 $< data/clean_tables $@ --subset $(split_datasets) --split-cases
 
 $(split_rf): src/analysis/classifiers.py $(split_datasets) $(clean_otu_tables) $(clean_metadata_files)
-	python $< data/clean_tables $@ --subset $(split_datasets) --split-cases
+	python2 $< data/clean_tables $@ --subset $(split_datasets) --split-cases
 
 $(split_dysbiosis): src/analysis/dysbiosis_metrics.py $(split_qvalues) $(split_dataset_info) $(overall_qvalues) $(split_rf)
-	python $< $(split_qvalues) $(split_dataset_info) \
+	python2 $< $(split_qvalues) $(split_dataset_info) \
 	$(overall_qvalues) $(split_rf) $@
 
 ## 11. Significance of non-specific response for different heuristics
 data/analysis_results/null_core.%_diseases.txt: src/analysis/null_core.py $(qvalues)
-	python $< $(qvalues) 0.05 $@ --n_diseases $* --reps 1000 --exclude-nonhealthy
+	python2 $< $(qvalues) 0.05 $@ --n_diseases $* --reps 1000 --exclude-nonhealthy
 
 ## Concordance analysis: how often are effects in same direction?
 $(concordance): src/analysis/concordance_analysis.py $(qvalues)
-	python $< --nreps 1000 --qthresh 1.0 --tidy_fout $@ $(qvalues)  $(concordance_pvals)
+	python2 $< --nreps 1000 --qthresh 1.0 --tidy_fout $@ $(qvalues)  $(concordance_pvals)
 
 ###############################################
 #                                             #
@@ -277,7 +277,7 @@ tree: $(final_tree_file)
 
 # Grab genus names from the qvalues file
 $(genera_file): src/analysis/genera_from_qvalues.py $(qvalues)
-	python $< $(qvalues) $(genera_file)
+	python2 $< $(qvalues) $(genera_file)
 
 # Get NCBI IDs using esearch - this takes a while
 $(ncbi_file): src/analysis/get_ncbi_IDs.sh $(genera_file)
@@ -286,7 +286,7 @@ $(ncbi_file): src/analysis/get_ncbi_IDs.sh $(genera_file)
 # Clean up the NCBI IDs (i.e. remove non-Bacteria things)
 # and keep just the genus IDs
 $(clean_ncbi): src/analysis/clean_ncbi.py $(ncbi_file)
-	python $< $(ncbi_file) data/analysis_results/ncbi_ids.clean.tmp $(clean_ncbi)
+	python2 $< $(ncbi_file) data/analysis_results/ncbi_ids.clean.tmp $(clean_ncbi)
 
 # Manual step: go to the phyloT website and make the tree
 $(phyloT_file): $(clean_ncbi)
@@ -322,29 +322,29 @@ stouffer_clean = $(subst txt,sig_ordered.txt,$(overall_qvalues_stouffer))
 for_plotting: $(qvalues_clean) $(meta_clean) $(overall_clean) $(logfold)
 
 $(qvalues_clean_tmp): src/analysis/clean_qvalues.py $(qvalues)
-	python $< $(qvalues)
+	python2 $< $(qvalues)
 
 $(qvalues_clean): src/analysis/reorder_qvalues.py $(qvalues_clean_tmp) $(final_tree_file)
-	python $< --do-qvals --qvalues $(qvalues_clean_tmp) $(final_tree_file)
+	python2 $< --do-qvals --qvalues $(qvalues_clean_tmp) $(final_tree_file)
 
 # I could have probably written this code to be more modular to avoid
 # the following repetition. Oh well.
 $(meta_clean): src/analysis/reorder_qvalues.py $(meta_qvalues) $(final_tree_file) $(qvalues_clean)
-	python $< --disease-df $(meta_qvalues) --qvalues $(qvalues_clean) $(final_tree_file)
+	python2 $< --disease-df $(meta_qvalues) --qvalues $(qvalues_clean) $(final_tree_file)
 
 $(overall_clean): src/analysis/reorder_qvalues.py $(overall_qvalues) $(final_tree_file) $(qvalues_clean)
-	python $< --overall $(overall_qvalues) --qvalues $(qvalues_clean) $(final_tree_file)
+	python2 $< --overall $(overall_qvalues) --qvalues $(qvalues_clean) $(final_tree_file)
 
 $(nocdi_clean): src/analysis/reorder_qvalues.py $(nocdi_overall) $(final_tree_file)
-	python $< --overall $(nocdi_overall) $(final_tree_file)
+	python2 $< --overall $(nocdi_overall) $(final_tree_file)
 
 $(stouffer_clean): src/analysis/reorder_qvalues.py $(overall_qvalues_stouffer) $(final_tree_file)
-	python $< --overall $(overall_qvalues_stouffer) $(final_tree_file)
+	python2 $< --overall $(overall_qvalues_stouffer) $(final_tree_file)
 
 ## Calculate logfold change for all of the "clean" genera
 # (i.e sig in at least one study, phylogenetically ordered)
 $(logfold): src/analysis/logfold_effect.py $(qvalues_clean) $(clean_otu_tables) $(clean_metadata_files)
-	python src/analysis/logfold_effect.py data/clean_tables \
+	python2 src/analysis/logfold_effect.py data/clean_tables \
 	$(qvalues_clean) $(logfold)
 
 ###############################################
@@ -370,7 +370,7 @@ tables: $(table1) $(table2) $(table3) $(table4) $(table5)
 
 # table.dataset_info.py makes table1 and table2 from datasets_info.txt
 $(table1): src/final/table.datasets_info.py $(dataset_info) $(fmt)
-	python $< $(dataset_info) $(table1) $(table2)
+	python2 $< $(dataset_info) $(table1) $(table2)
 
 $(table2): $(table1)
 	@if test -f $@; then :; else \
@@ -380,7 +380,7 @@ $(table2): $(table1)
 
 # table.processing_info.py makes table3 and table4
 $(table3): src/final/table.processing_info.py $(yaml_file) $(fmt)
-	python $< $(yaml_file) data/raw_otu_tables $(table3) $(table4)
+	python2 $< $(yaml_file) data/raw_otu_tables $(table3) $(table4)
 
 $(table4): $(table3)
 	@if test -f $@; then :; else \
@@ -389,7 +389,7 @@ $(table4): $(table3)
 	fi
 
 $(table5): src/final/table.classifier_evaluations.py $(rf_results) $(fmt)
-	python $< $(rf_results) $@
+	python2 $< $(rf_results) $@
 
 ###############################################
 #                                             #
@@ -481,66 +481,66 @@ fmt = src/util/Formatting.py
 
 # Sample size, AUC, extent and direction of shifts
 $(figure1): src/final/figure.samplesize_auc_extent_direction.py $(dysbiosis) $(dataset_info) $(fmt)
-	python $< $(dysbiosis) $(dataset_info) $(figure1)
+	python2 $< $(dysbiosis) $(dataset_info) $(figure1)
 
 $(figure7): src/final/figure.samplesize_auc_extent_direction.py $(split_dysbiosis) $(split_dataset_info) $(fmt)
-	python $< $(split_dysbiosis) $(split_dataset_info) $@ --edd
+	python2 $< $(split_dysbiosis) $(split_dataset_info) $@ --edd
 
 # Disease heatmaps without labels
 # $* contains the disease string, $@ is the target file
 final/figures/figure2.%_heatmap.pdf: src/final/figure.disease_specific_heatmaps.py $(qvalues) $(dataset_info) $(fmt)
-	python $< $* $(qvalues) $(dataset_info) $@
+	python2 $< $* $(qvalues) $(dataset_info) $@
 
 # Core heatmaps: disease-wise, core, and phylogeny
 $(figure3a): src/final/figure.core_and_disease_specific_genera.py $(meta_clean) $(overall_clean) $(fmt)
-	python $< $(meta_clean) $(overall_clean) $@
+	python2 $< $(meta_clean) $(overall_clean) $@
 
 # Percent overlap
 $(figure3b): src/final/figure.percent_overlap.py $(dysbiosis) $(dataset_info) $(fmt)
-	python $< $(dysbiosis) $(dataset_info) $@
+	python2 $< $(dysbiosis) $(dataset_info) $@
 
 # Ubiquity and abundance
 final/figures/figure3c.%.pdf: src/final/figure.ubiquity_abundance_boxplots.py $(ubiquity)
-	python $< $(ubiquity) $* $@
+	python2 $< $(ubiquity) $* $@
 
 # Alpha diversities
 $(figure9): src/final/figure.alpha_diversity.py $(alpha_divs) $(fmt)
-	python $< $(alpha_divs) $(subst .shannon.pdf,,$@)
+	python2 $< $(alpha_divs) $(subst .shannon.pdf,,$@)
 
 # ROC curves
 $(figure4): src/final/figure.roc_curves.py $(rf_results) $(fmt)
-	python $< $(rf_results) $@
+	python2 $< $(rf_results) $@
 
 # Disease-specific heatmap with labels
 final/figures/figure5.%_heatmap.with_labels.pdf: src/final/figure.disease_specific_heatmaps.py $(qvalues) $(dataset_info) $(fmt)
-	python $< $* $(qvalues) $(dataset_info) $@ --labels
+	python2 $< $* $(qvalues) $(dataset_info) $@ --labels
 
 final/figures/figure8.%_heatmap.with_labels.pdf: src/final/figure.disease_specific_heatmaps.py $(split_qvalues) $(split_dataset_info) $(fmt)
-	python $< $* $(split_qvalues) $(split_dataset_info) $@ --labels
+	python2 $< $* $(split_qvalues) $(split_dataset_info) $@ --labels
 
 # Core heatmap with labels
 $(figure6): src/final/figure.core_and_disease_specific_genera.py $(meta_clean) $(overall_clean) $(fmt)
-	python $< $(meta_clean) $(overall_clean) $@ --labels
+	python2 $< $(meta_clean) $(overall_clean) $@ --labels
 
 # Overall heatmap with q values
 $(heatmap_qvals): src/final/figure.overall_heatmap.py $(qvalues_clean) $(meta_clean) $(overall_clean) $(dataset_info) $(fmt)
-	python $< $(qvalues_clean) $(meta_clean) $(overall_clean) $(dataset_info) $@ --plot-log10
+	python2 $< $(qvalues_clean) $(meta_clean) $(overall_clean) $(dataset_info) $@ --plot-log10
 
 # Overall heatmap with effect
 $(heatmap_effects): src/final/figure.overall_heatmap.py $(logfold) $(meta_clean) $(overall_clean) $(dataset_info) $(fmt)
-	python $< $(logfold) $(meta_clean) $(overall_clean) $(dataset_info) $@
+	python2 $< $(logfold) $(meta_clean) $(overall_clean) $(dataset_info) $@
 
 # RF parameter search, gini criteria
 $(rf_params_gini): src/final/figure.rf_params.py $(rf_param_search) $(fmt)
-	python $< $(rf_param_search) gini $@
+	python2 $< $(rf_param_search) gini $@
 
 # RF parameter search, entropy criteria
 $(rf_params_entropy): src/final/figure.rf_params.py $(rf_param_search) $(fmt)
-	python $< $(rf_param_search) entropy $@
+	python2 $< $(rf_param_search) entropy $@
 
 # Healthy vs disease classifier
 $(rf_dataset_out): src/final/figure.healthy_vs_disease_classifier.py $(rf_results) $(rf_h_v_dis)
-	python $< $(rf_results) $(rf_h_v_dis) $(rf_dataset_out) $(rf_disease_out)
+	python2 $< $(rf_results) $(rf_h_v_dis) $(rf_dataset_out) $(rf_disease_out)
 
 $(rf_disease_out): $(rf_dataset_out)
 	@if test -f $@; then :; else \
@@ -550,14 +550,14 @@ $(rf_disease_out): $(rf_dataset_out)
 
 # Different core definitions
 $(core_defns_fig): src/final/figure.core_different_definitions.py $(overall_clean) $(nocdi_clean) $(stouffer_clean) $(final_tree_file)
-	python $< --labels $(overall_clean) $(nocdi_clean) $(stouffer_clean) $(final_tree_file) $@
+	python2 $< --labels $(overall_clean) $(nocdi_clean) $(stouffer_clean) $(final_tree_file) $@
 
 # Significance of core bugs
 $(sig_core): src/final/figure.null_shared_response.py $(all_core) $(null_core)
-	python $< data/analysis_results/null_core data/analysis_results/meta.counting.q-0.05 $@
+	python2 $< data/analysis_results/null_core data/analysis_results/meta.counting.q-0.05 $@
 
 # $(concordance_pvals): src/final/figure.concordance.py $(concordance) $(dataset_info)
-# 	python $< $(concordance) $(dataset_info) $@
+# 	python2 $< $(concordance) $(dataset_info) $@
 
 
 ###############################################
@@ -577,10 +577,10 @@ $(supp_qvals): $(qvalues)
 	cp $(qvalues) $@
 
 $(supp_disease): src/final/supp-file.convert_meta_analysis_results.py $(meta_qvalues)
-	python $< $(meta_qvalues) $@
+	python2 $< $(meta_qvalues) $@
 
 $(supp_overall): src/final/supp-file.convert_meta_analysis_results.py $(overall_qvalues)
-	python $< $(overall_qvalues) $@
+	python2 $< $(overall_qvalues) $@
 
 $(supp_litsearch): $(manual_meta_analysis)
 	cp $< $@
